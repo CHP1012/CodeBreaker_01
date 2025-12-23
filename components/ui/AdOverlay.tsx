@@ -9,7 +9,7 @@ interface Props {
 }
 
 export const AdOverlay: React.FC<Props> = ({ isOpen, onAdComplete, onClose, type }) => {
-  const [timeLeft, setTimeLeft] = useState(10); // 실제 광고 수익을 위해 대기 시간을 10초로 늘림
+  const [timeLeft, setTimeLeft] = useState(10); // 실제 광고 수익을 위해 대기 시간을 10초로 설정
 
   useEffect(() => {
     if (!isOpen) {
@@ -18,7 +18,6 @@ export const AdOverlay: React.FC<Props> = ({ isOpen, onAdComplete, onClose, type
     }
 
     if (timeLeft <= 0) {
-      // 대기 시간이 끝나면 보상을 줄 수 있는 버튼이 활성화되거나 자동으로 닫히도록 설정
       return;
     }
 
@@ -38,9 +37,12 @@ export const AdOverlay: React.FC<Props> = ({ isOpen, onAdComplete, onClose, type
       </div>
       
       <div className="w-full max-w-sm brutalist-border bg-white p-2 mb-6">
-        {/* 실제 애드센스 광고 노출 영역 */}
         <div className="bg-gray-200 min-h-[250px] flex items-center justify-center text-black overflow-hidden">
-          <AdSense adSlot="YOUR_AD_SLOT_ID" /> {/* 여기에 본인의 슬롯 ID 입력 */}
+          {/* 
+            [중요] 아래 adSlot 값을 애드센스 대시보드에서 생성한 
+            디스플레이 광고의 10자리 숫자로 바꾸시면 실제 광고가 송출됩니다.
+          */}
+          <AdSense adSlot="YOUR_AD_SLOT_ID" />
         </div>
       </div>
 
