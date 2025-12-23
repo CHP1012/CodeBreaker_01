@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>코드브레이커 // 일급 비밀</title>
+    <title>CODEBREAKER // TOP SECRET</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,39 +14,84 @@
         background-color: #F0F0F0;
         color: #111111;
         overflow-x: hidden;
+        transition: all 0.3s ease;
       }
       h1, h2, h3, .heading {
         font-family: 'Chakra Petch', sans-serif;
         text-transform: uppercase;
       }
       .brutalist-border {
-        border: 3px solid #111111;
+        border: 4px solid #111111;
       }
       .brutalist-shadow {
-        box-shadow: 4px 4px 0px #111111;
+        box-shadow: 6px 6px 0px #111111;
       }
       .brutalist-shadow-sm {
-        box-shadow: 2px 2px 0px #111111;
+        box-shadow: 3px 3px 0px #111111;
       }
+      
+      /* Glitch Effect (Fear / Error) */
+      @keyframes glitch {
+        0% { transform: translate(0); }
+        20% { transform: translate(-3px, 3px); }
+        40% { transform: translate(-3px, -3px); }
+        60% { transform: translate(3px, 3px); }
+        80% { transform: translate(3px, -3px); }
+        100% { transform: translate(0); }
+      }
+      .glitch-active {
+        animation: glitch 0.2s infinite;
+        filter: hue-rotate(90deg) contrast(150%);
+        background-color: #e0f2fe !important;
+      }
+
+      /* Pulse Red Effect (Anger / Lost) */
+      @keyframes pulse-red {
+        0% { box-shadow: inset 0 0 0px #FF3333; border-color: #111111; }
+        50% { box-shadow: inset 0 0 100px #FF3333; border-color: #FF3333; }
+        100% { box-shadow: inset 0 0 0px #FF3333; border-color: #111111; }
+      }
+      .pulse-red-active {
+        animation: pulse-red 0.8s infinite;
+      }
+
+      /* Scanline Animation */
       @keyframes scanline {
-        0% { bottom: 100%; }
-        100% { bottom: 0%; }
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100vh); }
       }
       .scanline-effect {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 2px;
-        background: rgba(17, 17, 17, 0.05);
-        opacity: 0.1;
+        background: rgba(17, 17, 17, 0.15);
         z-index: 9999;
         pointer-events: none;
-        animation: scanline 8s linear infinite;
+        animation: scanline 3s linear infinite;
       }
+
       @keyframes blink {
         0%, 100% { opacity: 1; }
         50% { opacity: 0; }
       }
       .cursor-blink {
         animation: blink 1s step-end infinite;
+      }
+
+      .mission-stamp {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-15deg);
+        border: 8px double #FF3333;
+        color: #FF3333;
+        padding: 15px 30px;
+        font-family: 'Chakra Petch', sans-serif;
+        font-size: 3.5rem;
+        font-weight: 900;
+        opacity: 0.3;
+        pointer-events: none;
+        z-index: 0;
+        background: rgba(240, 240, 240, 0.8);
       }
     </style>
   <script type="importmap">
@@ -63,7 +107,7 @@
 }
 </script>
 </head>
-  <body>
+  <body class="p-0 m-0">
     <div id="root"></div>
     <div class="scanline-effect"></div>
     <script type="module" src="/index.tsx"></script>
