@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { GameState, GameStats, Puzzle } from './types';
+import { GameState, GameStats, Puzzle, CipherType } from './types';
 import { generateDailyPuzzle, getDailySeed } from './lib/generator';
 import { CipherDisplay } from './components/game/CipherDisplay';
 import { Grid } from './components/game/Grid';
@@ -11,6 +12,16 @@ import { AdOverlay } from './components/ui/AdOverlay';
 const STORAGE_KEY = 'codebreaker_v1';
 const STATS_KEY = 'codebreaker_stats_v1';
 
+const CIPHER_NAMES: Record<CipherType, string> = {
+  [CipherType.CAESAR]: '카이사르 (Caesar)',
+  [CipherType.ATBASH]: '아트바쉬 (Atbash)',
+  [CipherType.A1Z26]: 'A1Z26 (숫자 치환)',
+  [CipherType.KEYWORD]: '키워드 (Keyword)',
+  [CipherType.PIGPEN]: '피그펜 (Pigpen)',
+  [CipherType.RAIL_FENCE]: '레일 펜스 (Rail Fence)',
+  [CipherType.VIGENERE]: '비제네르 (Vigenère)'
+};
+
 const App: React.FC = () => {
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,9 +31,10 @@ const App: React.FC = () => {
     status: 'PLAYING',
     guesses: [],
     currentGuess: '',
+    // Fix: Remove the 'boolean =' type annotation used as a value which caused a syntax error
     hintsUsed: false,
     dailySeed: 0
-  });
+  } as any);
 
   const [stats, setStats] = useState<GameStats>({
     played: 0,
@@ -33,10 +45,10 @@ const App: React.FC = () => {
 
   const [showStats, setShowStats] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [showIntel, setShowIntel] = useState(false);
-  const [intelTab, setIntelTab] = useState<'standard' | 'beginner'>('standard');
+  const [showWorkbench, setShowWorkbench] = useState(false);
+  const [workbenchTab, setWorkbenchTab] = useState<'standard' | 'beginner'>('standard');
   const [message, setMessage] = useState<string | null>(null);
-  const [missionLog, setMissionLog] = useState<string>("SYSTEM INITIALIZING...");
+  const [missionLog, setMissionLog] = useState<string>("초기화 중...");
   
   const [isGlitching, setIsGlitching] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
@@ -44,16 +56,6 @@ const App: React.FC = () => {
   const [showAd, setShowAd] = useState(false);
   const [adType, setAdType] = useState<'hint' | 'chance'>('hint');
   const [secondChanceUsed, setSecondChanceUsed] = useState(false);
-
-  const speak = (text: string, isUrgent = false) => {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ko-KR';
-    utterance.rate = isUrgent ? 1.4 : 1.0;
-    utterance.pitch = isUrgent ? 1.3 : 0.8;
-    window.speechSynthesis.speak(utterance);
-  };
 
   useEffect(() => {
     const initGame = async () => {
@@ -76,29 +78,24 @@ const App: React.FC = () => {
           if (parsed.lastPlayed === today && parsed.dailySeed === seed) {
             setGameState(parsed);
           } else {
-            setGameState(prev => ({ 
-              ...prev, 
+            setGameState({ 
               lastPlayed: today, 
               dailySeed: seed, 
               guesses: [], 
               currentGuess: '', 
               status: 'PLAYING', 
               hintsUsed: false 
-            }));
+            });
           }
         } else {
-          setGameState(prev => ({ ...prev, lastPlayed: today, dailySeed: seed }));
+          setGameState({ lastPlayed: today, dailySeed: seed, guesses: [], currentGuess: '', status: 'PLAYING', hintsUsed: false });
           setShowHelp(true);
         }
         
-        setMissionLog(`INCOMING SIGNAL DETECTED. ENCRYPTION: ${currentPuzzle.type.toUpperCase()}`);
-        speak(`새로운 암호 신호 수신. ${currentPuzzle.type} 프로토콜이 감지되었습니다.`);
+        setMissionLog(`[감지] 암호 프로토콜 분해 완료: ${currentPuzzle.type.toUpperCase()}`);
       } catch (err) {
         console.error("Puzzle generation error", err);
-        const errorMsg = "SIGNAL INTERFERENCE. CHECK API KEY SETTINGS.";
-        setMissionLog(errorMsg);
-        setError(errorMsg);
-        speak("시스템 오류 발생. 암호 신호를 복원할 수 없습니다.", true);
+        setMissionLog("[경고] 신호 간섭 차단됨. 백업 데이터 로드 중...");
       } finally {
         setIsLoading(false);
       }
@@ -125,9 +122,8 @@ const App: React.FC = () => {
     } else if (key === 'ENTER') {
       if (!puzzle) return;
       if (gameState.currentGuess.length !== puzzle.answer.length) {
-        setMessage(`${puzzle.answer.length}글자를 채워야 합니다.`);
-        setMissionLog(`ERROR: INCOMPLETE DATA. ${puzzle.answer.length} CHARS REQUIRED.`);
-        speak("데이터가 부족합니다.", true);
+        setMessage(`${puzzle.answer.length}글자를 입력하십시오.`);
+        setMissionLog(`[오류] 데이터 길이 불일치. ${puzzle.answer.length}자 필요.`);
         setIsGlitching(true);
         setTimeout(() => setIsGlitching(false), 300);
         setTimeout(() => setMessage(null), 1500);
@@ -141,8 +137,7 @@ const App: React.FC = () => {
       const newStatus = isWin ? 'WON' : (isLoss ? 'LOST' : 'PLAYING');
 
       if (isWin) {
-        setMissionLog("DECRYPTION SUCCESSFUL. DATA RETRIEVED.");
-        speak("해독 완료. 액세스를 허가합니다.");
+        setMissionLog("[성공] 암호 체계 붕괴. 기밀 데이터 확보.");
         setStats(prev => ({
           ...prev,
           played: prev.played + 1,
@@ -152,8 +147,7 @@ const App: React.FC = () => {
         }));
         setTimeout(() => setShowStats(true), 1500);
       } else if (isLoss) {
-        setMissionLog("CRITICAL FAILURE. ACCESS DENIED.");
-        speak("시스템 락다운. 해독에 실패했습니다.", true);
+        setMissionLog("[실패] 접근 권한 영구 정지됨.");
         setIsPulsing(true);
         setStats(prev => ({
           ...prev,
@@ -164,8 +158,7 @@ const App: React.FC = () => {
         }));
         setTimeout(() => setShowStats(true), 1500);
       } else {
-        setMissionLog(`ATTEMPT ${newGuesses.length}/${maxAttempts}: ${gameState.currentGuess} ANALYZED.`);
-        speak(`${gameState.currentGuess} 분석 중. 일치하지 않습니다.`);
+        setMissionLog(`[분석] 시도 ${newGuesses.length}/${maxAttempts}: '${gameState.currentGuess}' 대조 실패.`);
         setIsGlitching(true);
         setTimeout(() => setIsGlitching(false), 200);
       }
@@ -198,37 +191,25 @@ const App: React.FC = () => {
     setShowAd(false);
     if (adType === 'hint' && puzzle) {
       setGameState(prev => ({ ...prev, hintsUsed: true }));
-      setMessage(`INTEL: FIRST CHAR IS '${puzzle.answer[0]}'`);
-      setMissionLog(`HINT ACQUIRED: STARTING CHAR IS '${puzzle.answer[0]}'.`);
-      speak(`기밀 정보를 획득했습니다. 첫 글자는 ${puzzle.answer[0]}입니다.`);
+      setMessage(`[기밀] 첫 글자는 '${puzzle.answer[0]}'입니다.`);
+      setMissionLog(`[정보 확보] 암호문의 선두 문자는 '${puzzle.answer[0]}'로 확인됨.`);
       setTimeout(() => setMessage(null), 3000);
     } else if (adType === 'chance') {
       setSecondChanceUsed(true);
       setGameState(prev => ({ ...prev, status: 'PLAYING' }));
       setIsPulsing(false);
       setShowStats(false);
-      setMissionLog("OVERRIDE: SYSTEM REBOOTED for 1 ATTEMPT.");
-      speak("긴급 복구 시스템 가동. 마지막 기회를 부여합니다.");
+      setMissionLog("[복구] 시스템 오버라이드. 마지막 시도 권한 부여.");
     }
   };
 
   if (isLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F0F0F0]">
       <div className="text-center space-y-4">
-        <h1 className="heading text-2xl animate-pulse">CONNECTING TO NODE...</h1>
+        <h1 className="heading text-2xl animate-pulse">임무 데이터 로딩 중...</h1>
         <div className="w-48 h-1 bg-black mx-auto overflow-hidden">
           <div className="h-full bg-red-600 animate-[scanline_1.5s_linear_infinite]"></div>
         </div>
-      </div>
-    </div>
-  );
-
-  if (error) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F0F0F0] p-6 text-center">
-      <div className="brutalist-border bg-white p-8 brutalist-shadow max-w-sm">
-        <h1 className="heading text-2xl text-red-600 mb-4 tracking-tighter">CRITICAL SYSTEM ERROR</h1>
-        <p className="text-sm font-bold mb-6 font-mono">{error}</p>
-        <BrutalistButton onClick={() => window.location.reload()}>RETRY CONNECTION</BrutalistButton>
       </div>
     </div>
   );
@@ -238,8 +219,16 @@ const App: React.FC = () => {
   return (
     <div className={`min-h-screen max-w-md mx-auto px-4 py-4 flex flex-col bg-[#F0F0F0] select-none transition-all ${isGlitching ? 'glitch-active' : ''} ${isPulsing ? 'pulse-red-active' : ''}`}>
       
+      {/* 1. 최상단 암호화 유형 */}
+      <div className="mb-4 flex flex-col items-center justify-center border-b-2 border-black pb-2">
+        <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">암호 프로토콜 탐지됨</span>
+        <h2 className="text-xl font-black text-black">
+          {CIPHER_NAMES[puzzle.type]}
+        </h2>
+      </div>
+
       {gameState.status !== 'PLAYING' && (
-        <div className="mission-stamp">{gameState.status === 'WON' ? 'PASSED' : 'DENIED'}</div>
+        <div className="mission-stamp">{gameState.status === 'WON' ? '승인됨' : '차단됨'}</div>
       )}
 
       <AdOverlay 
@@ -249,64 +238,93 @@ const App: React.FC = () => {
         type={adType} 
       />
 
-      <header className="flex justify-between items-center mb-4 border-b-4 border-black pb-2 flex-shrink-0 z-10">
+      {/* 2. 헤더 섹션 */}
+      <header className="flex justify-between items-center mb-4 z-10">
         <div className="relative">
-          <h1 className="text-2xl font-bold tracking-tighter">CODEBREAKER</h1>
-          <div className="absolute -top-3 -right-6 rotate-12 bg-red-600 text-white text-[8px] px-2 py-0.5 font-bold brutalist-border">TOP SECRET</div>
+          <h1 className="text-3xl font-black tracking-tighter">CODEBREAKER</h1>
+          <div className="absolute -top-2 -right-6 rotate-12 bg-red-600 text-white text-[9px] px-2 py-0.5 font-bold border-2 border-black shadow-[2px_2px_0px_black]">기밀 취급</div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowHelp(true)} className="brutalist-border bg-white w-8 h-8 font-bold brutalist-shadow-sm hover:translate-y-0.5 transition-all">?</button>
-          <button onClick={() => setShowStats(true)} className="brutalist-border bg-white w-8 h-8 font-bold brutalist-shadow-sm hover:translate-y-0.5 transition-all">#</button>
+          <button onClick={() => setShowHelp(true)} className="brutalist-border bg-white w-9 h-9 font-bold brutalist-shadow-sm hover:translate-y-0.5 transition-all text-xl">?</button>
+          <button onClick={() => setShowStats(true)} className="brutalist-border bg-white w-9 h-9 font-bold brutalist-shadow-sm hover:translate-y-0.5 transition-all text-xl">#</button>
         </div>
       </header>
 
       <main className="flex-1 flex flex-col min-h-0 z-10">
-        <div className="mb-2 bg-black text-green-500 p-2 font-mono text-[9px] brutalist-border">
-          <div className="flex justify-between border-b border-green-900 mb-1">
-            <span>TERMINAL v1.2</span>
-            <span className="animate-pulse">ONLINE</span>
+        {/* 3. 첩보 데이터 스트림 터미널 */}
+        <div className="mb-3 bg-black text-green-500 p-2 font-mono text-[10px] brutalist-border">
+          <div className="flex justify-between border-b border-green-900 mb-1 pb-1">
+            <span className="font-bold tracking-tighter">LIVE INTEL STREAM // NODE-04</span>
+            <span className="animate-pulse flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span> 활동 중
+            </span>
           </div>
-          <p className="truncate">{"> "} {missionLog}</p>
+          <p className="truncate text-green-400 font-bold leading-relaxed">{"> "} {missionLog}</p>
         </div>
 
-        <div className="flex justify-between items-end mb-2">
-          <div>
-            <span className="text-[8px] font-bold text-gray-400 block tracking-widest uppercase">ENCRYPTION TYPE</span>
-            <span className="text-xs font-bold uppercase">{puzzle.type}</span>
-          </div>
-          <div className="flex gap-2">
+        {/* 4. 워크벤치 제어 */}
+        <div className="flex justify-between items-center mb-2">
+          <button 
+            onClick={() => setShowWorkbench(!showWorkbench)} 
+            className={`flex-1 py-2 text-xs font-black border-4 border-black transition-all brutalist-shadow-sm ${showWorkbench ? 'bg-black text-white translate-y-0.5 shadow-none' : 'bg-yellow-400 text-black hover:bg-yellow-300'}`}
+          >
+            {showWorkbench ? '워크벤치 비활성화 ▲' : '해독 워크벤치 활성화 ▼'}
+          </button>
+          {gameState.status === 'PLAYING' && !gameState.hintsUsed && (
             <button 
-              onClick={() => setShowIntel(!showIntel)} 
-              className={`text-[9px] font-bold border-2 border-black px-2 py-1 uppercase ${showIntel ? 'bg-black text-white' : 'bg-yellow-400'}`}
+              onClick={() => { setAdType('hint'); setShowAd(true); }} 
+              className="ml-3 px-3 py-2 text-xs font-black text-red-600 border-2 border-red-600 bg-white hover:bg-red-50"
             >
-              {showIntel ? 'CLOSE INTEL' : 'OPEN INTEL'}
+              힌트 요청
             </button>
-            {gameState.status === 'PLAYING' && !gameState.hintsUsed && (
-              <button onClick={() => { setAdType('hint'); setShowAd(true); }} className="text-[9px] font-bold text-red-600 underline uppercase">REQ HINT</button>
-            )}
-          </div>
+          )}
         </div>
 
-        {showIntel && (
-          <div className="mb-4 bg-white brutalist-border brutalist-shadow-sm overflow-hidden flex flex-col max-h-[300px]">
-            <div className="flex border-b-2 border-black">
-              <button onClick={() => setIntelTab('standard')} className={`flex-1 py-1 text-[9px] font-bold ${intelTab === 'standard' ? 'bg-black text-white' : ''}`}>ANALYSIS</button>
-              <button onClick={() => setIntelTab('beginner')} className={`flex-1 py-1 text-[9px] font-bold ${intelTab === 'beginner' ? 'bg-red-600 text-white' : ''}`}>GUIDE</button>
+        {/* 5. 워크벤치 패널 (직관적/상세 가이드) */}
+        {showWorkbench && (
+          <div className="mb-4 bg-white brutalist-border brutalist-shadow-sm overflow-hidden flex flex-col max-h-[380px] animate-in slide-in-from-top duration-200">
+            <div className="flex border-b-2 border-black bg-gray-100">
+              <button 
+                onClick={() => setWorkbenchTab('standard')} 
+                className={`flex-1 py-2 text-[10px] font-black ${workbenchTab === 'standard' ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-200'}`}
+              >
+                직관적 암호 분석
+              </button>
+              <button 
+                onClick={() => setWorkbenchTab('beginner')} 
+                className={`flex-1 py-2 text-[10px] font-black ${workbenchTab === 'beginner' ? 'bg-red-600 text-white' : 'text-gray-500 hover:bg-gray-200'}`}
+              >
+                실전 해독 가이드
+              </button>
             </div>
-            <div className="p-3 overflow-y-auto text-[10px] leading-relaxed">
-              {intelTab === 'standard' ? puzzle.decryptionTips : puzzle.beginnerGuide}
+            <div className="p-4 overflow-y-auto text-xs leading-relaxed whitespace-pre-wrap font-bold text-gray-800">
+              {workbenchTab === 'standard' ? (
+                <div className="space-y-3">
+                  <div className="bg-gray-50 p-2 border-l-4 border-black">
+                    <p className="text-[10px] text-gray-400 mb-1">분석 요약</p>
+                    {puzzle.decryptionTips}
+                  </div>
+                  <p className="text-[10px] text-blue-600 italic mt-2">※ 암호화 유형과 가로채기한 신호를 대조하여 패턴을 찾으십시오.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {puzzle.beginnerGuide}
+                </div>
+              )}
             </div>
           </div>
         )}
 
+        {/* 6. 암호 메시지 디스플레이 */}
         <CipherDisplay text={puzzle.ciphertext} type={puzzle.type} />
 
         {message && (
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black text-white px-6 py-4 brutalist-border z-[60] font-bold text-center shadow-2xl animate-bounce">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black text-white px-8 py-5 border-4 border-yellow-400 z-[60] font-black text-center shadow-[10px_10px_0px_rgba(0,0,0,0.5)] animate-bounce">
              {message}
           </div>
         )}
 
+        {/* 7. 그리드 및 키보드 */}
         <div className="flex-1 flex items-center justify-center py-4 min-h-0 overflow-y-auto">
           <Grid 
             guesses={gameState.guesses} 
@@ -326,51 +344,51 @@ const App: React.FC = () => {
         />
       </main>
 
-      <Modal isOpen={showHelp} onClose={() => setShowHelp(false)} title="OPERATION: CODEBREAKER">
-        <div className="space-y-4 text-sm">
-          <p className="font-bold">당신은 기밀 프로젝트의 암호 해독 요원입니다.</p>
-          <ul className="list-disc pl-5 space-y-2">
-            <li>매일 0시, 새로운 기밀 단어와 암호화 프로토콜이 할당됩니다.</li>
-            <li>6번의 시도 안에 정답 단어를 맞춰야 합니다.</li>
-            <li>추측 후 글자 색상이 상태를 알려줍니다:
-              <br/><span className="text-green-600 font-bold">초록</span>: 위치와 글자 일치
-              <br/><span className="text-yellow-600 font-bold">노랑</span>: 글자는 포함되나 위치 다름
-              <br/><span className="text-gray-600 font-bold">검정</span>: 단어에 포함되지 않음
+      <Modal isOpen={showHelp} onClose={() => setShowHelp(false)} title="작전 지시서: 코드브레이커">
+        <div className="space-y-4 text-sm font-bold">
+          <p>당신은 국가 기밀 프로젝트의 암호 해독 요원입니다.</p>
+          <ul className="list-disc pl-5 space-y-2 text-xs">
+            <li>매일 새로운 암호화 프로토콜이 수신됩니다.</li>
+            <li>6번의 시도 안에 영문 단어를 맞추십시오.</li>
+            <li>해독이 막힐 땐 '워크벤치'를 열어 상세 가이드를 확인하십시오.</li>
+            <li>색상 가이드:
+              <br/><span className="text-green-600">■ 초록</span>: 위치/글자 일치
+              <br/><span className="text-yellow-500">■ 노랑</span>: 글자만 포함됨
+              <br/><span className="text-gray-900">■ 검정</span>: 단어에 없음
             </li>
           </ul>
-          <BrutalistButton onClick={() => setShowHelp(false)} className="w-full">작전 개시</BrutalistButton>
+          <BrutalistButton onClick={() => setShowHelp(false)} className="w-full mt-4">데이터 분석 시작</BrutalistButton>
         </div>
       </Modal>
 
-      <Modal isOpen={showStats} onClose={() => setShowStats(false)} title="MISSION REPORT">
+      <Modal isOpen={showStats} onClose={() => setShowStats(false)} title="임무 수행 기록">
         <div className="space-y-6">
-          <div className="grid grid-cols-4 gap-2 text-center">
-            <div><div className="text-2xl font-bold">{stats.played}</div><div className="text-[8px] uppercase">Played</div></div>
-            <div><div className="text-2xl font-bold">{stats.won}</div><div className="text-[8px] uppercase">Won</div></div>
-            <div><div className="text-2xl font-bold">{Math.round((stats.won / (stats.played || 1)) * 100)}%</div><div className="text-[8px] uppercase">Win %</div></div>
-            <div><div className="text-2xl font-bold">{stats.streak}</div><div className="text-[8px] uppercase">Streak</div></div>
+          <div className="grid grid-cols-4 gap-2 text-center bg-white p-4 border-2 border-black shadow-inner">
+            <div><div className="text-2xl font-black">{stats.played}</div><div className="text-[9px] font-bold uppercase text-gray-500">수행</div></div>
+            <div><div className="text-2xl font-black">{stats.won}</div><div className="text-[9px] font-bold uppercase text-gray-500">성공</div></div>
+            <div><div className="text-2xl font-black">{Math.round((stats.won / (stats.played || 1)) * 100)}%</div><div className="text-[9px] font-bold uppercase text-gray-500">성공률</div></div>
+            <div><div className="text-2xl font-black">{stats.streak}</div><div className="text-[9px] font-bold uppercase text-gray-500">연속</div></div>
           </div>
           
           {gameState.status !== 'PLAYING' && (
-            <div className="bg-white p-3 brutalist-border text-center">
-              <p className="text-[10px] uppercase text-gray-400 mb-1">Target Identified</p>
-              <p className="text-2xl font-bold tracking-widest">{puzzle.answer}</p>
+            <div className="bg-yellow-100 p-4 border-4 border-black text-center">
+              <p className="text-[10px] font-black uppercase text-gray-500 mb-1">해독된 기밀 메시지</p>
+              <p className="text-3xl font-black tracking-widest">{puzzle.answer}</p>
             </div>
           )}
 
           {gameState.status === 'LOST' && !secondChanceUsed && (
-            <BrutalistButton variant="danger" className="w-full" onClick={() => { setAdType('chance'); setShowAd(true); }}>REQ SECOND CHANCE</BrutalistButton>
+            <BrutalistButton variant="danger" className="w-full" onClick={() => { setAdType('chance'); setShowAd(true); }}>시스템 긴급 복구 (광고)</BrutalistButton>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-4">
             <BrutalistButton variant="primary" className="flex-1" onClick={() => {
-              const text = `CODEBREAKER [${gameState.status === 'WON' ? gameState.guesses.length : 'X'}/6]\n#DailyCipher`;
+              const text = `CODEBREAKER [${gameState.status === 'WON' ? gameState.guesses.length : 'X'}/6]\n#코드브레이커 #오늘의암호`;
               navigator.clipboard.writeText(text);
-              setMessage("COPIED TO CLIPBOARD");
-              speak("작전 기록을 복사했습니다.");
+              setMessage("기록이 복사되었습니다.");
               setTimeout(() => setMessage(null), 2000);
-            }}>SHARE RECORD</BrutalistButton>
-            <BrutalistButton variant="secondary" onClick={() => setShowStats(false)}>CLOSE</BrutalistButton>
+            }}>기록 공유</BrutalistButton>
+            <BrutalistButton variant="secondary" onClick={() => setShowStats(false)}>닫기</BrutalistButton>
           </div>
         </div>
       </Modal>

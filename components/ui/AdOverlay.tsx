@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { AdSense } from './AdSense';
 
 interface Props {
   isOpen: boolean;
@@ -9,16 +9,16 @@ interface Props {
 }
 
 export const AdOverlay: React.FC<Props> = ({ isOpen, onAdComplete, onClose, type }) => {
-  const [timeLeft, setTimeLeft] = useState(5); // 시뮬레이션을 위해 5초로 설정 (사용자 경험 고려)
+  const [timeLeft, setTimeLeft] = useState(10); // 실제 광고 수익을 위해 대기 시간을 10초로 늘림
 
   useEffect(() => {
     if (!isOpen) {
-      setTimeLeft(5);
+      setTimeLeft(10);
       return;
     }
 
     if (timeLeft <= 0) {
-      onAdComplete();
+      // 대기 시간이 끝나면 보상을 줄 수 있는 버튼이 활성화되거나 자동으로 닫히도록 설정
       return;
     }
 
@@ -27,51 +27,52 @@ export const AdOverlay: React.FC<Props> = ({ isOpen, onAdComplete, onClose, type
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [isOpen, timeLeft, onAdComplete]);
+  }, [isOpen, timeLeft]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-white font-mono">
-      <div className="absolute top-4 right-4 border-2 border-white px-3 py-1 text-xs">
-        ADVERTISING // {timeLeft > 0 ? `${timeLeft}S REMAINING` : 'COMPLETE'}
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-4 text-white font-mono overflow-y-auto">
+      <div className="absolute top-4 right-4 border-2 border-white px-3 py-1 text-[10px] bg-black">
+        암호화 프로토콜 해제 중 // {timeLeft > 0 ? `${timeLeft}초 남음` : '해제 완료'}
       </div>
       
-      <div className="w-full max-w-sm aspect-video bg-zinc-900 border-4 border-white flex flex-col items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <div className="h-full w-full bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,255,255,0.1)_3px)]"></div>
+      <div className="w-full max-w-sm brutalist-border bg-white p-2 mb-6">
+        {/* 실제 애드센스 광고 노출 영역 */}
+        <div className="bg-gray-200 min-h-[250px] flex items-center justify-center text-black overflow-hidden">
+          <AdSense adSlot="YOUR_AD_SLOT_ID" /> {/* 여기에 본인의 슬롯 ID 입력 */}
         </div>
+      </div>
+
+      <div className="text-center space-y-4 max-w-xs">
+        <h3 className="text-lg font-black uppercase tracking-tighter text-yellow-400">
+          {type === 'hint' ? '긴급 데이터 힌트 분석' : '시스템 오버라이드 권한 획득'}
+        </h3>
+        <p className="text-[10px] text-zinc-400 leading-relaxed">
+          광고가 표시되는 동안 통신망이 확보됩니다. <br/>
+          분석이 완료될 때까지 잠시 기다려 주십시오.
+        </p>
         
-        <div className="z-10 text-center space-y-4 px-4">
-          <div className="text-4xl font-bold animate-pulse tracking-tighter">MANUS INTEL</div>
-          <p className="text-[10px] uppercase tracking-widest leading-relaxed">
-            Protect your data with the latest quantum encryption. <br/>
-            Trusted by agents worldwide.
-          </p>
-          <div className="inline-block border-2 border-white px-4 py-2 text-xs font-bold hover:bg-white hover:text-black transition-colors cursor-pointer">
-            INSTALL NOW
+        {timeLeft <= 0 ? (
+          <button 
+            onClick={onAdComplete}
+            className="w-full py-4 bg-red-600 text-white font-black border-2 border-white shadow-[4px_4px_0px_white] active:translate-y-1 active:shadow-none transition-all"
+          >
+            데이터 확보 완료 (닫기)
+          </button>
+        ) : (
+          <div className="w-full py-4 bg-zinc-800 text-zinc-500 font-black border-2 border-zinc-700 text-sm">
+            분석 진행 중... ({timeLeft})
           </div>
-        </div>
-        
-        {/* Progress bar */}
-        <div className="absolute bottom-0 left-0 h-1 bg-red-600 transition-all duration-1000 ease-linear" style={{ width: `${(5 - timeLeft) * 20}%` }}></div>
+        )}
       </div>
 
-      <div className="mt-8 text-center">
-        <p className="text-[10px] uppercase text-zinc-500 mb-2">You are watching this ad to unlock:</p>
-        <div className="text-xl font-bold uppercase tracking-widest border-b-2 border-red-600 inline-block">
-          {type === 'hint' ? 'EMERGENCY HINT' : 'SECOND CHANCE (+1 GUESS)'}
-        </div>
-      </div>
-
-      {timeLeft > 0 && (
-        <button 
-          onClick={onClose}
-          className="mt-12 text-[10px] uppercase text-zinc-600 underline hover:text-zinc-400"
-        >
-          Skip Ad (Will not unlock reward)
-        </button>
-      )}
+      <button 
+        onClick={onClose}
+        className="mt-8 text-[10px] uppercase text-zinc-600 underline hover:text-zinc-400"
+      >
+        작전 중단 (보상 없음)
+      </button>
     </div>
   );
 };
