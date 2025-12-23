@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { CipherType, Puzzle } from '../types';
 import { encrypt } from './ciphers';
@@ -37,7 +36,8 @@ function shuffledSchedule(seed: number): CipherType[] {
 }
 
 export async function generateDailyPuzzle(seed: number): Promise<Puzzle> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = (process.env.API_KEY || "") as string;
+  const ai = new GoogleGenAI({ apiKey });
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -56,8 +56,9 @@ export async function generateDailyPuzzle(seed: number): Promise<Puzzle> {
     }
   });
 
-  const data = JSON.parse(response.text);
-  const word = data.word.toUpperCase().replace(/[^A-Z]/g, '');
+  const textOutput = response.text || "{}";
+  const data = JSON.parse(textOutput);
+  const word = (data.word || "AGENT").toUpperCase().replace(/[^A-Z]/g, '');
   
   const rng = mulberry32(seed);
   const weeklySeed = getWeeklySeed();

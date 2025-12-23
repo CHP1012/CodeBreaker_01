@@ -44,7 +44,6 @@ const App: React.FC = () => {
   const [adType, setAdType] = useState<'hint' | 'chance'>('hint');
   const [secondChanceUsed, setSecondChanceUsed] = useState(false);
 
-  // Browser TTS Simulation
   const speak = (text: string, isUrgent = false) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -252,7 +251,7 @@ const App: React.FC = () => {
             <span>TERMINAL v1.2</span>
             <span className="animate-pulse">ONLINE</span>
           </div>
-          <p className="truncate">&gt; {missionLog}</p>
+          <p className="truncate">{" > "} {missionLog}</p>
         </div>
 
         <div className="flex justify-between items-end mb-2">
