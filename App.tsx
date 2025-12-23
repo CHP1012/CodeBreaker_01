@@ -14,6 +14,7 @@ const STATS_KEY = 'codebreaker_stats_v1';
 const App: React.FC = () => {
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState>({
     lastPlayed: '',
     status: 'PLAYING',
@@ -57,6 +58,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const initGame = async () => {
       setIsLoading(true);
+      setError(null);
       const seed = getDailySeed();
       
       try {
@@ -91,9 +93,12 @@ const App: React.FC = () => {
         
         setMissionLog(`INCOMING SIGNAL DETECTED. ENCRYPTION: ${currentPuzzle.type.toUpperCase()}`);
         speak(`새로운 암호 신호 수신. ${currentPuzzle.type} 프로토콜이 감지되었습니다.`);
-      } catch (error) {
-        console.error("Puzzle generation error", error);
-        setMissionLog("SIGNAL INTERFERENCE... PLEASE REFRESH.");
+      } catch (err) {
+        console.error("Puzzle generation error", err);
+        const errorMsg = "SIGNAL INTERFERENCE. CHECK API KEY SETTINGS.";
+        setMissionLog(errorMsg);
+        setError(errorMsg);
+        speak("시스템 오류 발생. 암호 신호를 복원할 수 없습니다.", true);
       } finally {
         setIsLoading(false);
       }
@@ -113,7 +118,7 @@ const App: React.FC = () => {
   }, [stats]);
 
   const onKey = useCallback((key: string) => {
-    if (gameState.status !== 'PLAYING' || isLoading) return;
+    if (gameState.status !== 'PLAYING' || isLoading || error) return;
 
     if (key === 'BACK' || key === 'BACKSPACE') {
       setGameState(prev => ({ ...prev, currentGuess: prev.currentGuess.slice(0, -1) }));
@@ -176,7 +181,7 @@ const App: React.FC = () => {
         setGameState(prev => ({ ...prev, currentGuess: prev.currentGuess + key }));
       }
     }
-  }, [gameState, puzzle, isLoading, secondChanceUsed]);
+  }, [gameState, puzzle, isLoading, secondChanceUsed, error]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -218,6 +223,16 @@ const App: React.FC = () => {
     </div>
   );
 
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F0F0F0] p-6 text-center">
+      <div className="brutalist-border bg-white p-8 brutalist-shadow max-w-sm">
+        <h1 className="heading text-2xl text-red-600 mb-4 tracking-tighter">CRITICAL SYSTEM ERROR</h1>
+        <p className="text-sm font-bold mb-6 font-mono">{error}</p>
+        <BrutalistButton onClick={() => window.location.reload()}>RETRY CONNECTION</BrutalistButton>
+      </div>
+    </div>
+  );
+
   if (!puzzle) return null;
 
   return (
@@ -251,7 +266,7 @@ const App: React.FC = () => {
             <span>TERMINAL v1.2</span>
             <span className="animate-pulse">ONLINE</span>
           </div>
-          <p className="truncate">{" > "} {missionLog}</p>
+          <p className="truncate">{"> "} {missionLog}</p>
         </div>
 
         <div className="flex justify-between items-end mb-2">

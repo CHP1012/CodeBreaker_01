@@ -36,14 +36,13 @@ function shuffledSchedule(seed: number): CipherType[] {
 }
 
 export async function generateDailyPuzzle(seed: number): Promise<Puzzle> {
-  const apiKey = (process.env.API_KEY || "") as string;
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `Today's seed is ${seed}. Generate a common English word related to spy, hacker, or intelligence theme. 
                The word length should be between 4 and 7 letters. 
-               Return only the word in uppercase.`,
+               Return as a JSON object with a key "word".`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -56,9 +55,17 @@ export async function generateDailyPuzzle(seed: number): Promise<Puzzle> {
     }
   });
 
-  const textOutput = response.text || "{}";
-  const data = JSON.parse(textOutput);
-  const word = (data.word || "AGENT").toUpperCase().replace(/[^A-Z]/g, '');
+  // 응답에서 JSON 문자열만 추출 (마크다운 코드 블록 제거)
+  const rawText = response.text || "{}";
+  const jsonStr = rawText.replace(/```json|```/g, "").trim();
+  
+  let word = "AGENT";
+  try {
+    const data = JSON.parse(jsonStr);
+    word = (data.word || "AGENT").toUpperCase().replace(/[^A-Z]/g, '');
+  } catch (e) {
+    console.error("JSON Parse Error", e);
+  }
   
   const rng = mulberry32(seed);
   const weeklySeed = getWeeklySeed();
