@@ -252,7 +252,7 @@ const App: React.FC = () => {
             <span>TERMINAL v1.2</span>
             <span className="animate-pulse">ONLINE</span>
           </div>
-          <p className="truncate">{">"} {missionLog}</p>
+          <p className="truncate">&gt; {missionLog}</p>
         </div>
 
         <div className="flex justify-between items-end mb-2">
