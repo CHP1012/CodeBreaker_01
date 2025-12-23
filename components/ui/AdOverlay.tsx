@@ -39,10 +39,10 @@ export const AdOverlay: React.FC<Props> = ({ isOpen, onAdComplete, onClose, type
       <div className="w-full max-w-sm brutalist-border bg-white p-2 mb-6">
         <div className="bg-gray-200 min-h-[250px] flex items-center justify-center text-black overflow-hidden">
           {/* 
-            [중요] 아래 adSlot 값을 애드센스 대시보드에서 생성한 
-            디스플레이 광고의 10자리 숫자로 바꾸시면 실제 광고가 송출됩니다.
+            실제 애드센스 슬롯 ID 6408526409 적용 완료.
+            배포 후 구글의 승인이 완료되면 이 자리에 광고가 나타납니다.
           */}
-          <AdSense adSlot="YOUR_AD_SLOT_ID" />
+          <AdSense adSlot="6408526409" />
         </div>
       </div>
 

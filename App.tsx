@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { GameState, GameStats, Puzzle, CipherType } from './types';
 import { generateDailyPuzzle, getDailySeed } from './lib/generator';
@@ -31,10 +30,9 @@ const App: React.FC = () => {
     status: 'PLAYING',
     guesses: [],
     currentGuess: '',
-    // Fix: Remove the 'boolean =' type annotation used as a value which caused a syntax error
     hintsUsed: false,
     dailySeed: 0
-  } as any);
+  });
 
   const [stats, setStats] = useState<GameStats>({
     played: 0,
@@ -115,7 +113,7 @@ const App: React.FC = () => {
   }, [stats]);
 
   const onKey = useCallback((key: string) => {
-    if (gameState.status !== 'PLAYING' || isLoading || error) return;
+    if (gameState.status !== 'PLAYING' || isLoading) return;
 
     if (key === 'BACK' || key === 'BACKSPACE') {
       setGameState(prev => ({ ...prev, currentGuess: prev.currentGuess.slice(0, -1) }));
@@ -174,7 +172,7 @@ const App: React.FC = () => {
         setGameState(prev => ({ ...prev, currentGuess: prev.currentGuess + key }));
       }
     }
-  }, [gameState, puzzle, isLoading, secondChanceUsed, error]);
+  }, [gameState, puzzle, isLoading, secondChanceUsed]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -219,7 +217,6 @@ const App: React.FC = () => {
   return (
     <div className={`min-h-screen max-w-md mx-auto px-4 py-4 flex flex-col bg-[#F0F0F0] select-none transition-all ${isGlitching ? 'glitch-active' : ''} ${isPulsing ? 'pulse-red-active' : ''}`}>
       
-      {/* 1. 최상단 암호화 유형 */}
       <div className="mb-4 flex flex-col items-center justify-center border-b-2 border-black pb-2">
         <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">암호 프로토콜 탐지됨</span>
         <h2 className="text-xl font-black text-black">
@@ -238,7 +235,6 @@ const App: React.FC = () => {
         type={adType} 
       />
 
-      {/* 2. 헤더 섹션 */}
       <header className="flex justify-between items-center mb-4 z-10">
         <div className="relative">
           <h1 className="text-3xl font-black tracking-tighter">CODEBREAKER</h1>
@@ -251,7 +247,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 flex flex-col min-h-0 z-10">
-        {/* 3. 첩보 데이터 스트림 터미널 */}
         <div className="mb-3 bg-black text-green-500 p-2 font-mono text-[10px] brutalist-border">
           <div className="flex justify-between border-b border-green-900 mb-1 pb-1">
             <span className="font-bold tracking-tighter">LIVE INTEL STREAM // NODE-04</span>
@@ -262,7 +257,6 @@ const App: React.FC = () => {
           <p className="truncate text-green-400 font-bold leading-relaxed">{"> "} {missionLog}</p>
         </div>
 
-        {/* 4. 워크벤치 제어 */}
         <div className="flex justify-between items-center mb-2">
           <button 
             onClick={() => setShowWorkbench(!showWorkbench)} 
@@ -280,7 +274,6 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* 5. 워크벤치 패널 (직관적/상세 가이드) */}
         {showWorkbench && (
           <div className="mb-4 bg-white brutalist-border brutalist-shadow-sm overflow-hidden flex flex-col max-h-[380px] animate-in slide-in-from-top duration-200">
             <div className="flex border-b-2 border-black bg-gray-100">
@@ -315,7 +308,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* 6. 암호 메시지 디스플레이 */}
         <CipherDisplay text={puzzle.ciphertext} type={puzzle.type} />
 
         {message && (
@@ -324,7 +316,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* 7. 그리드 및 키보드 */}
         <div className="flex-1 flex items-center justify-center py-4 min-h-0 overflow-y-auto">
           <Grid 
             guesses={gameState.guesses} 
